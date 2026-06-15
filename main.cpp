@@ -2,10 +2,6 @@
 #include <iostream>
 #include <string>
 
-RenderedPill get_lang_env();
-RenderedPill get_directory_pill();
-RenderedPill get_git_pill();
-
 int main(int argc, char *argv[]) {
         int exit_code = (argc > 1) ? std::stoi(argv[1]) : 0;
         std::string duration = (argc > 2) ? argv[2] : "";
@@ -13,18 +9,18 @@ int main(int argc, char *argv[]) {
 
         std::string time_color = (exit_code == 0) ? C_YELLOW : C_RED;
 
-        std::string wave_link = "%F{" + C_GRAY + "} 󰜥 %f";
-        int wave_width = 3;
+        RenderedPill wave_link = render_text(C_GRAY, " 󰜥 ");
 
         // ====== 构建第一行左侧 ======
-        std::string left_prompt = "\n%F{" + C_GRAY + "}╭─ %f";
-        int left_width = 3;
+        RenderedPill prompt_start = render_text(C_GRAY, "╭─ ");
+        std::string left_prompt = "\n" + prompt_start.zsh_code;
+        int left_width = prompt_start.visible_width;
 
         if (!duration.empty() && duration != "0ms") {
-                left_prompt += "%F{" + C_YELLOW + "}%K{" + C_YELLOW + "}%F{" + C_BASE +
-                        "}󰔚 " + duration + " %k%F{" + C_YELLOW + "}%f" +
-                        wave_link;
-                left_width += 5 + duration.length() + wave_width;
+                RenderedPill duration_pill =
+                        render_pill(C_YELLOW, "󰔚 " + duration + " ");
+                left_prompt += duration_pill.zsh_code + wave_link.zsh_code;
+                left_width += duration_pill.visible_width + wave_link.visible_width;
         }
 
         RenderedPill dir_pill = get_directory_pill();
@@ -33,8 +29,8 @@ int main(int argc, char *argv[]) {
 
         RenderedPill git_pill = get_git_pill();
         if (git_pill.visible_width > 0) {
-                left_prompt += wave_link + git_pill.zsh_code;
-                left_width += wave_width + git_pill.visible_width;
+                left_prompt += wave_link.zsh_code + git_pill.zsh_code;
+                left_width += wave_link.visible_width + git_pill.visible_width;
         }
 
         // ====== 构建第一行右侧 ======
@@ -43,20 +39,15 @@ int main(int argc, char *argv[]) {
 
         RenderedPill lang_pill = get_lang_env();
         if (lang_pill.visible_width > 0) {
-                right_prompt += lang_pill.zsh_code + wave_link;
-                right_width += lang_pill.visible_width + wave_width;
+                right_prompt += lang_pill.zsh_code + wave_link.zsh_code;
+                right_width += lang_pill.visible_width + wave_link.visible_width;
         }
 
-        std::string time_zsh = "%F{" + time_color + "}%K{" + time_color + "}%F{" +
-                C_BASE + "}  " + "%D{%H:%M:%S} %k%F{" + time_color +
-                "}%f";
+        RenderedPill time_pill =
+                render_pill(time_color, "  %D{%H:%M:%S} ", "  00:00:00 ");
 
-        // (1) + 前置空(1) + (1) + 标后空(1) + 时间(8) + 尾部空(1) + (1) =
-        // 14
-        int time_width = 14;
-
-        right_prompt += time_zsh;
-        right_width += time_width;
+        right_prompt += time_pill.zsh_code;
+        right_width += time_pill.visible_width;
 
         // ====== 对齐 ======
         int spaces_needed = term_width - left_width - right_width;
@@ -65,8 +56,8 @@ int main(int argc, char *argv[]) {
         std::string fill_spaces(spaces_needed, ' ');
 
         // ====== 第二行光标输入层 ======
-        std::string second_line =
-                "\n%F{" + C_GRAY + "}╰─ %f%F{" + C_GREEN + "} %f";
+        std::string second_line = "\n" + render_text(C_GRAY, "╰─ ").zsh_code +
+                render_text(C_GREEN, " ").zsh_code;
 
         std::cout << left_prompt << fill_spaces << right_prompt << second_line;
 
